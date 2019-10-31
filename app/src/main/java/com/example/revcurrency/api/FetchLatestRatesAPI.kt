@@ -6,14 +6,14 @@ import com.example.revcurrency.util.APIUtil.URL
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 
-class FetchLatestRatesAPI(baseCurrency: String = EUR) : API<LatestRates>() {
+class FetchLatestRatesAPI(baseCurrency: String? = null) : API<LatestRates>() {
 
     companion object {
         private const val EUR = "EUR"
     }
 
     init {
-        url = "${URL}/latest?base=${baseCurrency}"
+        url = "${URL}/latest?base=${baseCurrency ?: EUR}"
     }
 
     @Throws(JsonSyntaxException::class)

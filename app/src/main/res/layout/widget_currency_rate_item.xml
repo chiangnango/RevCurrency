@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tool:ignore="ContentDescription"
-        tool:src="@drawable/ic_usd" />
+        tool:src="@drawable/ic_us" />
 
     <TextView
         android:id="@+id/currency_abbr"

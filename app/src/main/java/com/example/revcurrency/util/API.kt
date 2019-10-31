@@ -20,15 +20,15 @@ abstract class API<T> {
 
     abstract fun parseResult(response: String): T
 
-    suspend fun start(): T {
+    suspend fun await(): T {
         val request = Request.Builder().url(url).build()
         val call = okHttpClient.newCall(request)
 
         return suspendCancellableCoroutine { continuation ->
-            Log.d(TAG, "start ${this@API.javaClass.simpleName} $url")
+            MyLog.d(TAG, "start ${this@API.javaClass.simpleName} $url")
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    Log.d(
+                    MyLog.d(
                         TAG,
                         "${this@API.javaClass.simpleName} onFailure: ${Log.getStackTraceString(e)}"
                     )
@@ -42,13 +42,13 @@ abstract class API<T> {
                         val bodyStr = response.body?.string()
                         if (response.isSuccessful) {
                             bodyStr?.let {
-                                Log.d(
+                                MyLog.d(
                                     TAG,
                                     "${this@API.javaClass.simpleName} onResponse successful: $it"
                                 )
                                 parseResult(it)
                             } ?: run {
-                                Log.d(
+                                MyLog.d(
                                     TAG,
                                     "${this@API.javaClass.simpleName} onResponse fail: response body is null"
                                 )
@@ -60,7 +60,10 @@ abstract class API<T> {
                                 response.message,
                                 bodyStr
                             ).also {
-                                Log.d(TAG, "${this@API.javaClass.simpleName} onResponse fail: $it")
+                                MyLog.d(
+                                    TAG,
+                                    "${this@API.javaClass.simpleName} onResponse fail: $it"
+                                )
                             }
                         }
                     })
@@ -73,7 +76,7 @@ abstract class API<T> {
 
     private fun Call.registerOnCompletion(continuation: CancellableContinuation<*>) {
         continuation.invokeOnCancellation {
-            Log.d(TAG, "${this@API.javaClass.simpleName} onCancellation")
+            MyLog.d(TAG, "${this@API.javaClass.simpleName} onCancellation")
             cancel()
         }
     }

@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.revcurrency.R
 import com.example.revcurrency.util.ImageUtil
 import kotlinx.android.synthetic.main.widget_currency_rate_item.view.*
+import java.util.*
 
 class CurrencyRateAdapter : RecyclerView.Adapter<CurrencyRateAdapter.ViewHolder>() {
 
@@ -28,13 +29,19 @@ class CurrencyRateAdapter : RecyclerView.Adapter<CurrencyRateAdapter.ViewHolder>
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val currencyRate = data[position]
+        val currencyAmount = data[position]
 
         with(holder) {
-            ImageUtil.load(currencyIconMap[currencyRate.first], icon)
-            abbr.text = currencyRate.first
-            name.text = itemView.context.getString(R.string.currency_name, currencyRate.first)
-            amount.setText(100.toString())
+            val context = itemView.context
+            val drawableResId = context.resources.getIdentifier(
+                "ic_${currencyAmount.first.toLowerCase(Locale.US).substring(0 until 2)}",
+                "drawable",
+                context.packageName
+            )
+            ImageUtil.loadCircleImage(drawableResId, icon)
+            abbr.text = currencyAmount.first
+            name.text = itemView.context.getString(R.string.currency_name, currencyAmount.first)
+            amount.setText(currencyAmount.second.toString())
         }
     }
 
@@ -45,13 +52,5 @@ class CurrencyRateAdapter : RecyclerView.Adapter<CurrencyRateAdapter.ViewHolder>
         val abbr: TextView = itemView.currency_abbr
         val name: TextView = itemView.currency_name
         val amount: EditText = itemView.amount
-    }
-
-    companion object {
-        private val currencyIconMap = mapOf(
-            "USD" to R.drawable.ic_usd,
-            "EUR" to R.drawable.ic_eur,
-            "SEK" to R.drawable.ic_sek
-        )
     }
 }
