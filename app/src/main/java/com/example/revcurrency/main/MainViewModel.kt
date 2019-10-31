@@ -8,6 +8,7 @@ import com.example.revcurrency.data.APIResult
 import com.example.revcurrency.data.CurrencyRateItem
 import com.example.revcurrency.data.LatestRates
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: MainRepository) : ViewModel() {
@@ -31,17 +32,35 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     fun fetchLatestRates() {
         if (needFetchLatestRates()) {
             viewModelScope.launch {
-                val rates = async { repository.fetchLatestRates() }
-                val map = async { repository.fetchCurrencyNameMap() }
-                handleFetchComplete(rates.await(), map.await())
+                val deferredRates = async { repository.fetchLatestRates() }
+                val deferredMap = if (needFetchCurrencyNameMap()) {
+                    async { repository.fetchCurrencyNameMap() }
+                } else {
+                    null
+                }
+                handleFetchComplete(deferredRates.await(), deferredMap?.await())
             }
+            repeatFetchLatestRate()
 
             _showSpinner.value = true
         }
     }
 
+    private fun repeatFetchLatestRate() {
+        viewModelScope.launch {
+            while (true) {
+                delay(1_000L)
+                handleFetchComplete(repository.fetchLatestRates())
+            }
+        }
+    }
+
     private fun needFetchLatestRates(): Boolean {
         return _currencyRateList.value == null
+    }
+
+    private fun needFetchCurrencyNameMap(): Boolean {
+        return currencyNameMap == null
     }
 
     private fun handleFetchSuccess(data: LatestRates) {
@@ -78,11 +97,12 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
 
     private fun handleFetchComplete(
         rateResult: APIResult<LatestRates>,
-        mapResult: APIResult<Map<String, String>>
+        mapResult: APIResult<Map<String, String>>? = null
     ) {
         _showSpinner.value = false
 
         when (mapResult) {
+            null -> Unit
             is APIResult.Success<Map<String, String>> -> currencyNameMap = mapResult.data
             else -> Unit // TODO: error handling
         }

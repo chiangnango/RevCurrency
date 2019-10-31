@@ -9,12 +9,17 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager.VERTICAL
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.example.revcurrency.R
 import com.example.revcurrency.architecture.InjectorUtil
 import com.example.revcurrency.widget.CurrencyRateAdapter
 import kotlinx.android.synthetic.main.fragment_main.*
 
 class MainFragment : Fragment() {
+
+    companion object {
+        private val TAG = MainFragment::class.java.simpleName
+    }
 
     private lateinit var adapter: CurrencyRateAdapter
 
@@ -44,7 +49,11 @@ class MainFragment : Fragment() {
         viewModel.currencyRateList.observe(viewLifecycleOwner, Observer {
 
             adapter.currencyRateList = it
-            adapter.notifyDataSetChanged()
+            if (adapter.currencyRateList.isEmpty()) {
+                adapter.notifyDataSetChanged()
+            } else {
+                adapter.notifyItemRangeChanged(1, adapter.itemCount - 1)
+            }
         })
 
         viewModel.showSpinner.observe(viewLifecycleOwner, Observer { visible ->
@@ -63,5 +72,6 @@ class MainFragment : Fragment() {
 
         adapter = CurrencyRateAdapter()
         currency_list.adapter = adapter
+        (currency_list.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
     }
 }
