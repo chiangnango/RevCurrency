@@ -4,8 +4,6 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 object APIUtil {
-    const val URL = "https://revolut.duckdns.org"
-
     val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
