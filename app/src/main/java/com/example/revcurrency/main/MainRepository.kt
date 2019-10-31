@@ -1,23 +1,27 @@
 package com.example.revcurrency.main
 
-import androidx.annotation.VisibleForTesting
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import com.example.revcurrency.api.FetchCurrencyNameMapAPI
 import com.example.revcurrency.api.FetchLatestRatesAPI
+import com.example.revcurrency.data.APIResult
 import com.example.revcurrency.data.LatestRates
 
 class MainRepository {
 
-    @VisibleForTesting
-    internal val _latestRates = MutableLiveData<Result<LatestRates>>()
-    val latestRates: LiveData<Result<LatestRates>> = _latestRates
-
-    suspend fun fetchLatestRates(baseCurrency: String? = null) {
-        try {
+    suspend fun fetchLatestRates(baseCurrency: String? = null): APIResult<LatestRates> {
+        return try {
             val result = FetchLatestRatesAPI(baseCurrency).await()
-            _latestRates.value = Result.success(result)
+            APIResult.Success(result)
         } catch (e: Exception) {
-            _latestRates.value = Result.failure(e)
+            APIResult.Failure(e)
+        }
+    }
+
+    suspend fun fetchCurrencyNameMap(): APIResult<Map<String, String>> {
+        return try {
+            val result = FetchCurrencyNameMapAPI().await()
+            APIResult.Success(result)
+        } catch (e: Exception) {
+            APIResult.Failure(e)
         }
     }
 }

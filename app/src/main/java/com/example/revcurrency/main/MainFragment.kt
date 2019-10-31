@@ -32,7 +32,6 @@ class MainFragment : Fragment() {
         super.onActivityCreated(savedInstanceState)
 
         initViewModel()
-
         initView()
 
         viewModel.fetchLatestRates()
@@ -44,7 +43,7 @@ class MainFragment : Fragment() {
 
         viewModel.currencyRateList.observe(viewLifecycleOwner, Observer {
 
-            adapter.data = it
+            adapter.currencyRateList = it
             adapter.notifyDataSetChanged()
         })
 

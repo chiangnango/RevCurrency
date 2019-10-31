@@ -6,15 +6,24 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.annotation.VisibleForTesting
 import androidx.recyclerview.widget.RecyclerView
 import com.example.revcurrency.R
+import com.example.revcurrency.data.CurrencyRateItem
 import com.example.revcurrency.util.ImageUtil
 import kotlinx.android.synthetic.main.widget_currency_rate_item.view.*
 import java.util.*
 
 class CurrencyRateAdapter : RecyclerView.Adapter<CurrencyRateAdapter.ViewHolder>() {
 
-    var data: MutableList<Pair<String, Float>> = mutableListOf()
+    companion object {
+        @VisibleForTesting
+        internal fun getCurrencyIconName(currencyAbbr: String): String {
+            return "ic_${currencyAbbr.toLowerCase(Locale.US).substring(0 until 2)}"
+        }
+    }
+
+    var currencyRateList: MutableList<CurrencyRateItem> = mutableListOf()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
@@ -29,23 +38,23 @@ class CurrencyRateAdapter : RecyclerView.Adapter<CurrencyRateAdapter.ViewHolder>
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val currencyAmount = data[position]
+        val data = currencyRateList[position]
 
         with(holder) {
             val context = itemView.context
             val drawableResId = context.resources.getIdentifier(
-                "ic_${currencyAmount.first.toLowerCase(Locale.US).substring(0 until 2)}",
+                getCurrencyIconName(data.abbr),
                 "drawable",
                 context.packageName
             )
             ImageUtil.loadCircleImage(drawableResId, icon)
-            abbr.text = currencyAmount.first
-            name.text = itemView.context.getString(R.string.currency_name, currencyAmount.first)
-            amount.setText(currencyAmount.second.toString())
+            abbr.text = data.abbr
+            name.text = data.name
+            amount.setText(data.amount.toString())
         }
     }
 
-    override fun getItemCount(): Int = data.size
+    override fun getItemCount(): Int = currencyRateList.size
 
     class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val icon: ImageView = itemView.currency_icon

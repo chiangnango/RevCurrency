@@ -1,8 +1,13 @@
 package com.example.revcurrency.main
 
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.revcurrency.data.APIResult
+import com.example.revcurrency.data.CurrencyRateItem
 import com.example.revcurrency.data.LatestRates
-import com.example.revcurrency.util.MyLog
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class MainViewModel(private val repository: MainRepository) : ViewModel() {
@@ -10,79 +15,81 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     companion object {
         private val TAG = MainViewModel::class.java.simpleName
 
-        private const val DEFAULT_AMOUNT = 100
+        private const val DEFAULT_AMOUNT = 100f
     }
 
-    private var amount = DEFAULT_AMOUNT
+    private var amount: Float = DEFAULT_AMOUNT
 
-    val latestRates = repository.latestRates
+    private var currencyNameMap: Map<String, String>? = null
 
-    private val _currencyRateList = MutableLiveData<MutableList<Pair<String, Float>>>()
-    val currencyRateList: LiveData<MutableList<Pair<String, Float>>> = _currencyRateList
+    private val _currencyRateList = MutableLiveData<MutableList<CurrencyRateItem>>()
+    val currencyRateList: LiveData<MutableList<CurrencyRateItem>> = _currencyRateList
 
     private val _showSpinner = MutableLiveData<Boolean>()
     val showSpinner: LiveData<Boolean> = _showSpinner
 
-    private val latestRatesObserver = Observer<Result<LatestRates>> {
-        MyLog.d(TAG, "LatestRates onChanged() $it")
-
-        when {
-            it.isSuccess -> {
-                it.getOrNull()?.let { data ->
-                    handleFetchSuccess(data)
-                } ?: handleFetchFailure()
-            }
-            it.isFailure -> {
-                handleFetchFailure()
-            }
-        }
-
-        _showSpinner.value = false
-    }
-
-    init {
-        repository.latestRates.observeForever(latestRatesObserver)
-    }
-
     fun fetchLatestRates() {
-        if (latestRates.value == null) {
+        if (needFetchLatestRates()) {
             viewModelScope.launch {
-                repository.fetchLatestRates()
+                val rates = async { repository.fetchLatestRates() }
+                val map = async { repository.fetchCurrencyNameMap() }
+                handleFetchComplete(rates.await(), map.await())
             }
+
             _showSpinner.value = true
         }
     }
 
+    private fun needFetchLatestRates(): Boolean {
+        return _currencyRateList.value == null
+    }
+
     private fun handleFetchSuccess(data: LatestRates) {
+        fun getName(abbr: String): String = currencyNameMap?.get(abbr) ?: ""
+
         val currentList = _currencyRateList.value
+
         _currencyRateList.value = if (currentList == null) {
-            mutableListOf<Pair<String, Float>>().apply {
-                add(Pair(data.base, amount.toFloat()))
+            mutableListOf<CurrencyRateItem>().apply {
+                add(CurrencyRateItem(data.base, getName(data.base), 1.0f, amount))
                 addAll(data.rates.entries.map {
-                    Pair(it.key, it.value * amount)
-                }.toMutableList())
+                    CurrencyRateItem(it.key, getName(it.key), it.value, it.value * amount)
+                })
             }
         } else {
-            currentList.map {
-                val name = it.first
-                if (name == data.base) {
-                    it
-                } else {
-                    data.rates[name]?.let { rate ->
-                        Pair(name, rate * amount)
-                    } ?: it
+            currentList.apply {
+                forEach {
+                    val abbr = it.abbr
+                    if (abbr == data.base) {
+                        it.rate = 1.0f
+                        it.amount = amount
+                    } else {
+                        data.rates[abbr]?.let { newRate ->
+                            if (it.rate != newRate) {
+                                it.rate = newRate
+                                it.amount = amount * newRate
+                            }
+                        }
+                    }
                 }
-            }.toMutableList()
+            }
         }
     }
 
-    private fun handleFetchFailure() {
-        // TODO: error handling
-    }
+    private fun handleFetchComplete(
+        rateResult: APIResult<LatestRates>,
+        mapResult: APIResult<Map<String, String>>
+    ) {
+        _showSpinner.value = false
 
-    override fun onCleared() {
-        super.onCleared()
+        when (mapResult) {
+            is APIResult.Success<Map<String, String>> -> currencyNameMap = mapResult.data
+            else -> Unit // TODO: error handling
+        }
 
-        repository.latestRates.removeObserver(latestRatesObserver)
+        when (rateResult) {
+            is APIResult.Success<LatestRates> -> handleFetchSuccess(rateResult.data)
+            else -> Unit // TODO: error handling
+        }
     }
 }
