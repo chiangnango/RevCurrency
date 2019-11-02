@@ -26,9 +26,7 @@ class MainFragment : Fragment() {
     private lateinit var viewModel: MainViewModel
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_main, container, false)
     }
@@ -43,16 +41,29 @@ class MainFragment : Fragment() {
     }
 
     private fun initViewModel() {
-        viewModel = ViewModelProviders.of(this, InjectorUtil.provideMainViewModelFactory())
-            .get(MainViewModel::class.java)
+        viewModel =
+            ViewModelProviders.of(this, InjectorUtil.provideMainViewModelFactory()).get(MainViewModel::class.java)
 
         viewModel.currencyRateList.observe(viewLifecycleOwner, Observer {
 
-            adapter.currencyRateList = it
             if (adapter.currencyRateList.isEmpty()) {
                 adapter.notifyDataSetChanged()
             } else {
+                // To prevent first item's EditText's text and cursor changed, only notify remaining items changed
                 adapter.notifyItemRangeChanged(1, adapter.itemCount - 1)
+            }
+            adapter.currencyRateList = it
+        })
+
+        viewModel.currencyRateListAction.observe(viewLifecycleOwner, Observer {
+
+            when (it) {
+                is CurrencyRateListAction.FocusOnAmountShowIME -> {
+                    adapter.focusOnAmountShowIME(currency_list, it.pos)
+                }
+                is CurrencyRateListAction.ShiftItemToTop -> {
+                    adapter.notifyItemMoved(it.pos, 0)
+                }
             }
         })
 
@@ -66,12 +77,24 @@ class MainFragment : Fragment() {
     }
 
     private fun initView() {
-        currency_list.layoutManager = LinearLayoutManager(context).apply {
-            orientation = VERTICAL
+        with(currency_list) {
+            layoutManager = LinearLayoutManager(context).apply {
+                orientation = VERTICAL
+            }
+            // Remove notifyChanged update flash animation
+            (itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
         }
 
-        adapter = CurrencyRateAdapter()
-        currency_list.adapter = adapter
-        (currency_list.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
+        adapter = CurrencyRateAdapter().apply {
+            onItemClickedListener = { pos ->
+                viewModel.onItemClicked(pos)
+            }
+
+            onTextChangedListener = { newText ->
+                viewModel.onTextChanged(newText)
+            }
+
+            currency_list.adapter = this
+        }
     }
 }

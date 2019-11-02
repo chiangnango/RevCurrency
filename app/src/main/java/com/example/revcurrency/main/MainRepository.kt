@@ -7,7 +7,7 @@ import com.example.revcurrency.data.LatestRates
 
 class MainRepository {
 
-    suspend fun fetchLatestRates(baseCurrency: String? = null): APIResult<LatestRates> {
+    suspend fun fetchLatestRates(baseCurrency: String): APIResult<LatestRates> {
         return try {
             val result = FetchLatestRatesAPI(baseCurrency).await()
             APIResult.Success(result)

@@ -20,7 +20,7 @@
         tool:src="@drawable/ic_us" />
 
     <TextView
-        android:id="@+id/currency_abbr"
+        android:id="@+id/currency"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/common_margin"
@@ -39,8 +39,8 @@
         android:textColor="#8B959E"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="@id/currency_abbr"
-        app:layout_constraintTop_toBottomOf="@id/currency_abbr"
+        app:layout_constraintStart_toStartOf="@id/currency"
+        app:layout_constraintTop_toBottomOf="@id/currency"
         tool:text="USD Dollar" />
 
     <EditText
@@ -48,6 +48,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="@dimen/common_margin"
+        android:hint="@string/amount_hint_0"
+        android:imeOptions="actionDone"
         android:importantForAutofill="no"
         android:inputType="numberDecimal"
         android:textColor="@android:color/black"
