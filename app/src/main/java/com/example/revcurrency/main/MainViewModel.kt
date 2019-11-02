@@ -8,6 +8,7 @@ import com.example.revcurrency.data.APIResult
 import com.example.revcurrency.data.CurrencyRateItem
 import com.example.revcurrency.data.LatestRates
 import com.example.revcurrency.util.APIUtil.DEFAULT_CURRENCY
+import com.example.revcurrency.util.SingleLiveEvent
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -35,7 +36,7 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     private val _currencyRateList = MutableLiveData<MutableList<CurrencyRateItem>>()
     val currencyRateList: LiveData<MutableList<CurrencyRateItem>> = _currencyRateList
 
-    private val _currencyRateListAction = MutableLiveData<CurrencyRateListAction>()
+    private val _currencyRateListAction = SingleLiveEvent<CurrencyRateListAction>()
     val currencyRateListAction: LiveData<CurrencyRateListAction> = _currencyRateListAction
 
     private val _showSpinner = MutableLiveData<Boolean>()
