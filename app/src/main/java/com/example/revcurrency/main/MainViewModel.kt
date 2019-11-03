@@ -1,5 +1,6 @@
 package com.example.revcurrency.main
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -18,20 +19,15 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     companion object {
         private val TAG = MainViewModel::class.java.simpleName
 
-        private const val DEFAULT_AMOUNT = 100f
+        @VisibleForTesting
+        internal const val DEFAULT_AMOUNT = 100f
     }
 
     private var amount: Float = DEFAULT_AMOUNT
 
     private var baseCurrency: String = DEFAULT_CURRENCY
 
-    /**
-     * Only be set when baseCurrency changed. If receive latestRates lacks new baseCurrency,
-     * use this to calculate new rates of each currency based on changed baseCurrency.
-     */
-    private var conversionRate: Float = 1f
-
-    private var currencyNameMap: Map<String, String>? = null
+    var currencyNameMap: Map<String, String>? = null
 
     private val _currencyRateList = MutableLiveData<MutableList<CurrencyRateItem>>()
     val currencyRateList: LiveData<MutableList<CurrencyRateItem>> = _currencyRateList
@@ -39,31 +35,40 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     private val _currencyRateListAction = SingleLiveEvent<CurrencyRateListAction>()
     val currencyRateListAction: LiveData<CurrencyRateListAction> = _currencyRateListAction
 
-    private val _showSpinner = MutableLiveData<Boolean>()
+    val _showSpinner = SingleLiveEvent<Boolean>()
     val showSpinner: LiveData<Boolean> = _showSpinner
 
-    fun fetchLatestRates() {
+    fun fetchCurrencyRates() {
         if (needFetchLatestRates()) {
+            _showSpinner.value = true
+
             viewModelScope.launch {
-                val deferredRates = async { repository.fetchLatestRates(baseCurrency) }
+                val deferredRates = async { fetchLatestRates() }
                 val deferredMap = if (needFetchCurrencyNameMap()) {
                     async { repository.fetchCurrencyNameMap() }
                 } else {
                     null
                 }
-                handleFetchComplete(deferredRates.await(), deferredMap?.await())
+
+                fetchCurrencyNameComplete(deferredMap?.await())
+                fetchLatestRatesComplete(deferredRates.await())
             }
             repeatFetchLatestRate()
-
-            _showSpinner.value = true
         }
+    }
+
+    private suspend fun fetchLatestRates(): APIResult<LatestRates> {
+        return repository.fetchLatestRates(baseCurrency)
     }
 
     private fun repeatFetchLatestRate() {
         viewModelScope.launch {
             while (true) {
+                println("before delay ${Thread.currentThread().name} ${System.currentTimeMillis()}")
                 delay(1_000L)
-                handleFetchComplete(repository.fetchLatestRates(baseCurrency))
+                println("after delay ${Thread.currentThread().name} ${System.currentTimeMillis()}")
+                fetchLatestRatesComplete(fetchLatestRates())
+                println("fetch complete ${Thread.currentThread().name}")
             }
         }
     }
@@ -76,12 +81,15 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
         return currencyNameMap == null
     }
 
-    private fun handleFetchSuccess(latest: LatestRates) {
+    private fun updateCurrencyRateList(latest: LatestRates) {
         fun getName(abbr: String): String = currencyNameMap?.get(abbr) ?: ""
 
         val currentList = _currencyRateList.value
 
+        println("updateCurrencyRateList ${Thread.currentThread().name} $latest $currentList")
+
         _currencyRateList.value = if (currentList == null) {
+            baseCurrency = latest.base
             mutableListOf<CurrencyRateItem>().apply {
                 add(CurrencyRateItem(latest.base, getName(latest.base), 1.0f, amount))
                 addAll(latest.rates.entries.map {
@@ -89,44 +97,49 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
                 })
             }
         } else {
-            // TODO: LatestRates and currentList diff check
+            // TODO: LatestRates and currentList diff check, additional items or removed items
 
-            currentList.apply {
-                val conversion = if (latest.base == baseCurrency) {
-                    1f
-                } else {
-                    latest.rates[baseCurrency] ?: conversionRate
+            // calculate new rates based on baseCurrency
+            val newRatesMap = if (baseCurrency == latest.base) {
+                HashMap<String, Float>().apply {
+                    put(latest.base, 1.0f)
+                    putAll(latest.rates)
                 }
+            } else {
+                val conversion = latest.rates[baseCurrency]
+                    ?: return   // TODO: error handling if latest rates don't contain baseCurrency
 
-                forEach {
-                    val newRate = if (it.currency == latest.base) {
-                        1.0f / conversion
-                    } else {
-                        val rate = latest.rates[it.currency] ?: return@forEach
-                        rate / conversion
+                HashMap<String, Float>().apply {
+                    put(latest.base, 1.0f / conversion)
+
+                    latest.rates.entries.forEach {
+                        put(it.key, it.value / conversion)
                     }
+                }
+            }
 
-                    it.rate = newRate
-                    it.amount = amount * newRate
+            // update currentList via newRatesMap
+            currentList.apply {
+                forEach {
+                    it.rate = newRatesMap[it.currency] ?: return@forEach
+                    it.amount = amount * it.rate
                 }
             }
         }
     }
 
-    private fun handleFetchComplete(
-        rateResult: APIResult<LatestRates>,
-        mapResult: APIResult<Map<String, String>>? = null
-    ) {
-        _showSpinner.value = false
-
+    private fun fetchCurrencyNameComplete(mapResult: APIResult<Map<String, String>>? = null) {
         when (mapResult) {
             null -> Unit
             is APIResult.Success<Map<String, String>> -> currencyNameMap = mapResult.data
             else -> Unit // TODO: error handling
         }
+    }
 
+    private fun fetchLatestRatesComplete(rateResult: APIResult<LatestRates>) {
+        _showSpinner.value = false
         when (rateResult) {
-            is APIResult.Success<LatestRates> -> handleFetchSuccess(rateResult.data)
+            is APIResult.Success<LatestRates> -> updateCurrencyRateList(rateResult.data)
             else -> Unit // TODO: error handling
         }
     }
@@ -145,9 +158,8 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
             val newBaseItem = get(0)
             baseCurrency = newBaseItem.currency
             amount = newBaseItem.amount
-            conversionRate = newBaseItem.rate
             forEach {
-                it.rate /= conversionRate
+                it.rate /= newBaseItem.rate
             }
         }
         _currencyRateListAction.value = CurrencyRateListAction.ShiftItemToTop(pos)

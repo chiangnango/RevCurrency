@@ -37,7 +37,7 @@ class MainFragment : Fragment() {
         initViewModel()
         initView()
 
-        viewModel.fetchLatestRates()
+        viewModel.fetchCurrencyRates()
     }
 
     private fun initViewModel() {

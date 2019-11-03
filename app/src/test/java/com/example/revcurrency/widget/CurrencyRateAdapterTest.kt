@@ -1,4 +1,4 @@
-package com.example.revcurrency
+package com.example.revcurrency.widget
 
 import com.example.revcurrency.widget.CurrencyRateAdapter.Companion.getCurrencyIconName
 import com.google.common.truth.Truth.assertThat

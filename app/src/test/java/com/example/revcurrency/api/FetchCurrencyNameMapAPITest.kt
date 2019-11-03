@@ -1,6 +1,5 @@
-package com.example.revcurrency
+package com.example.revcurrency.api
 
-import com.example.revcurrency.api.FetchCurrencyNameMapAPI
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
