@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="usd_name">US Dollar</string>
+    <string name="eur_name">Euro</string>
+    <string name="sek_name">Swedish Krona</string>
+    <string name="aud_name">Australian Dollar</string>
+    <string name="bgn_name">Bulgaria Lev</string>
+    <string name="brl_name">Brazil Real</string>
+    <string name="cad_name">Canada Dollar</string>
+    <string name="chf_name">Switzerland Franc</string>
+    <string name="cny_name">China Yuan/Renminbi</string>
+    <string name="czk_name">Czech Koruna</string>
+    <string name="dkk_name">Denmark Krone</string>
+    <string name="gbp_name">Great Britain Pound</string>
+    <string name="hkd_name">Hong Kong Dollar</string>
+    <string name="hrk_name">Croatia Kuna</string>
+    <string name="huf_name">Hungary Forint</string>
+    <string name="idr_name">Indonesia Rupiah</string>
+</resources>
