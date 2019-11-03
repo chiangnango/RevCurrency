@@ -64,11 +64,8 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     private fun repeatFetchLatestRate() {
         viewModelScope.launch {
             while (true) {
-                println("before delay ${Thread.currentThread().name} ${System.currentTimeMillis()}")
                 delay(1_000L)
-                println("after delay ${Thread.currentThread().name} ${System.currentTimeMillis()}")
                 fetchLatestRatesComplete(fetchLatestRates())
-                println("fetch complete ${Thread.currentThread().name}")
             }
         }
     }
@@ -85,8 +82,6 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
         fun getName(abbr: String): String = currencyNameMap?.get(abbr) ?: ""
 
         val currentList = _currencyRateList.value
-
-        println("updateCurrencyRateList ${Thread.currentThread().name} $latest $currentList")
 
         _currencyRateList.value = if (currentList == null) {
             baseCurrency = latest.base
