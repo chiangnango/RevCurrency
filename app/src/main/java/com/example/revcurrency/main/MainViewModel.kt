@@ -10,6 +10,7 @@ import com.example.revcurrency.data.CurrencyRateItem
 import com.example.revcurrency.data.LatestRates
 import com.example.revcurrency.util.APIUtil.DEFAULT_CURRENCY
 import com.example.revcurrency.util.SingleLiveEvent
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,6 +39,8 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     val _showSpinner = SingleLiveEvent<Boolean>()
     val showSpinner: LiveData<Boolean> = _showSpinner
 
+    private var repeatFetchLatestRateJob: Job? = null
+
     fun fetchCurrencyRates() {
         if (needFetchLatestRates()) {
             _showSpinner.value = true
@@ -62,7 +65,11 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
     }
 
     private fun repeatFetchLatestRate() {
-        viewModelScope.launch {
+        if (repeatFetchLatestRateJob?.isActive == true) {
+            return
+        }
+
+        repeatFetchLatestRateJob = viewModelScope.launch {
             while (true) {
                 delay(1_000L)
                 fetchLatestRatesComplete(fetchLatestRates())
@@ -174,5 +181,17 @@ class MainViewModel(private val repository: MainRepository) : ViewModel() {
             }
             _currencyRateList.value = this
         }
+    }
+
+    fun onResume() {
+        repeatFetchLatestRate()
+    }
+
+    fun onPause() {
+        cancelRepeatFetchLatestRate()
+    }
+
+    private fun cancelRepeatFetchLatestRate() {
+        repeatFetchLatestRateJob?.cancel()
     }
 }

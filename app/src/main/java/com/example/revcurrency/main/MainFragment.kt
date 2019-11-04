@@ -97,4 +97,16 @@ class MainFragment : Fragment() {
             currency_list.adapter = this
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+
+        viewModel.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+        viewModel.onPause()
+    }
 }
