@@ -1,5 +1,5 @@
 # RevCurrency
-This is Revolut Android Test Application. There's only one page - currency rate list page.
+This sample app contains only one page - currency rate list page.
 Every 1 second will fetch latest rates data and update on UI. 
 Edit the amount of first(base) currency will automatically update other currencies' amount value according to respective rate.
 When click currency item, it will shift the item to top and set it as the base currency. 
